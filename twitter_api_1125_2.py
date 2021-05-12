@@ -8,10 +8,10 @@ from tweepy.streaming import StreamListener
 import time
 from datetime import timedelta
 import pandas as pd
-key = 'mSBosjhTDLJd8hJhabBBNZxeR'
-secret = '2X6VH6sG4JKbrk3EM986I8idmpbEa03nPI6qiTLLf8ibSz1sjJ'
-at = '1134935674803691526-SUXYhZZQabanxojKI2EFwvojn4Qs14'
-ats = 'jxNiesNnhhM46PfqEyRIiR1YDq8r82zN6VX8SG8cX2gLB'
+key = #key#
+secret = #secret#
+at = #at#
+ats = #ats#
 auth  = tweepy.OAuthHandler(key, secret)
 auth.set_access_token(at, ats)
 tracked = input("Enter Search Term: ")
@@ -41,6 +41,4 @@ tweet_stream = pd.read_json('tw33ts.json', lines=True)
 print(tweet_stream)
 
 exit()
-
-
 
