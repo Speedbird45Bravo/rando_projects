@@ -33,7 +33,6 @@ df['result'] = encode(results)
 
 X_final = df[['league','team1','team2','spi1','spi2','xg1','xg2','adj_score1','adj_score2','proj_score1','proj_score2','score1','score2','nsxg1','nsxg2']]
 y_final = df['result']
-X_train, X_test, y_train, y_test = train_test_split(X_final, y_final, test_size=0.2, random_state=46)
 
 categorical_mask = X_final.dtypes == object
 cat_columns = X_final.columns[categorical_mask].tolist()
@@ -41,6 +40,8 @@ num_columns = X_final.columns[~categorical_mask].tolist()
 cat_mapper = DataFrameMapper([([cat_feature], CategoricalImputer()) for cat_feature in cat_columns], input_df=True, df_out=True)
 num_mapper = DataFrameMapper([([num_feature], SimpleImputer(missing_values=np.nan, strategy="median")) for num_feature in num_columns], input_df=True, df_out=True)
 union = FeatureUnion([("num_mapper", num_mapper), ("cat_mapper", cat_mapper)], verbose=0)
+
+X_train, X_test, y_train, y_test = train_test_split(X_final, y_final, test_size=0.2, random_state=46)
 
 class Dictifier(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
@@ -58,6 +59,6 @@ pipe.fit(X_train, y_train)
 
 predictions = pipe.predict(X_test)
 
-accuracy = accuracy_score(y_test, predictions).round(6) * 100
+accuracy = accuracy_score(y_test, predictions).round(4) * 100
 
-print("Test Accuracy Result: {}%".format(accuracy))
+print("Test Accuracy Performance Result: {}%".format(accuracy))
