@@ -59,4 +59,6 @@ pipe.fit(X_train, y_train)
 
 predictions = pipe.predict(X_test)
 
-print(accuracy_score(y_test, predictions))
+accuracy = accuracy_score(y_test, predictions).round(5) * 100
+
+print("Test Accuracy: {}%".format(accuracy))
