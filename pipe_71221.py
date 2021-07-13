@@ -1,12 +1,12 @@
 from sklearn_pandas import DataFrameMapper
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction import DictVectorizer
-from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics import accuracy_score
 from feature_engine.imputation import CategoricalImputer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.model_selection import train_test_split
+from sklearn.base import BaseEstimator, TransformerMixin
 from datetime import datetime
 import numpy as np
 import pandas as pd
@@ -16,6 +16,12 @@ df['date'] = pd.to_datetime(df['date'])
 today = datetime.today()
 df = df[df.date <= today]
 df['result'] = df['score1'] - df['score2']
+
+class Dictifier(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        return self
+    def transform(self, X):
+        return pd.DataFrame(X).to_dict("records")
 
 X_final = df[['league', 'team1', 'team2', 'spi1',
        'spi2', 'prob1', 'prob2', 'probtie', 'proj_score1', 'proj_score2',
@@ -37,12 +43,6 @@ y_final = df['result']
 df = df.drop(["result","season","date","league_id"], axis=1)
 X_train, X_test, y_train, y_test = train_test_split(X_final, y_final, test_size=0.2, random_state=6)
 
-class Dictifier(BaseEstimator, TransformerMixin):
-    def fit(self, X, y=None):
-        return self
-    def transform(self, X):
-        return pd.DataFrame(X).to_dict("records")
-
 cat_mask = df.dtypes == object
 cat_cols = df.columns[cat_mask].tolist()
 cat_map = DataFrameMapper([([cat_feature], CategoricalImputer()) for cat_feature in cat_cols], input_df=True, df_out=True)
@@ -54,4 +54,4 @@ pipe = Pipeline([("feature_union", union), ("dictifier", Dictifier()), ("vectori
 pipe.fit(X_train, y_train)
 predictions = pipe.predict(X_test)
 accuracy = accuracy_score(y_test, predictions).round(4) * 100
-print("Test Accuracy Score: {}%".format(accuracy))
+print("Test Accuracy Result: {}%".format(accuracy))
