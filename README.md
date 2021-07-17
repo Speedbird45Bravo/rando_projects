@@ -1,2 +1,2 @@
 # rando_projects
-Mostly Python projects in IPYNB.
+Python projects in both .py and .ipynb.
