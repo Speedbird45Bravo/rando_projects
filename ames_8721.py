@@ -1,6 +1,6 @@
-from sklearn.ensemble import AdaBoostRegressor, BaggingRegressor, GradientBoostingRegressor, RandomForestRegressor
+from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import r2_score
-from sklearn.model_selection import train_test_split, cross_val_score, KFold, GridSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import numpy as np
 import pandas as pd
@@ -32,6 +32,6 @@ X_train, X_test, y_train, y_test = train_test_split(X_final, y_final, test_size=
 model = GradientBoostingRegressor()
 model.fit(X_train, y_train)
 predictions = model.predict(X_test)
-test_r2 = np.round(r2_score(y_test, predictions),4)
+r2_metric = np.round(r2_score(y_test, predictions),3)
 
-print("Test R2 Score: {}".format(test_r2))
+print("Test R2 Score: {}".format(r2_metric))
