@@ -8,6 +8,7 @@ import gspread
 import pandas as pd
 import requests
 import re
+import numpy as np
 
 #####
 
@@ -38,7 +39,7 @@ import re
 ##### This is where the new code comes in 19:42 12/8/2021
 
 url = "https://flightxml.flightaware.com/json/FlightXML2/"
-user = "username"
+user = "user"
 key = "key"
 payload = {"airport":"KBGR", "howMany":15}
 
@@ -88,6 +89,13 @@ new_df["arrivaltime"] = new_df["arrivaltime"].apply(lambda x: datetime.fromtimes
 # Sort by actual_departure_time DESCENDING 08:52 12/11/2021
 new_df = new_df.sort_values(by=['actualdeparturetime'], ascending=False)
 
+# If there are no flights, we exit the program and the Google API does not run.
+if len(new_df) == 0:
+	print("No flights added.")
+	exit()
+else:
+	pass
+
 # Ident lists created 19:52 12/16/2021
 idents_a = []
 idents_b = []
@@ -116,11 +124,18 @@ bgr['Flight'] = idents_b
 # Creating more columns 16:51 12/17/2021
 bgr['Type'] = new_df['aircrafttype'].str.strip()
 
-# Dictionary creation. 20:35 12/18/2021
+# Import the existing DataFrame 21:19 12/19/2021
+gc = gspread.service_account()
+sh = gc.open("#sheet#")
+ws = sh.get_worksheet(0)
+df = pd.DataFrame(ws.get_all_records())
+
+# Dictionary creation for origins/destinations and their countries. 20:35 12/18/2021
 origins = dict(zip(df['Origin'],df['Origin Country']))
 destinations = dict(zip(df['Destination'],df['Destination Country']))
 
 # Stackoverflow Code 20:57 12/18/2021
+# We only want one dictionary with no duplicates so we'll just merge them.
 def Merge(dict_1, dict_2):
 	result = dict_1 | dict_2
 	return result
@@ -132,14 +147,14 @@ combined_dict = Merge(origins, destinations)
 bgr['Origin'] = new_df['origin'].str.strip()
 bgr['Destination'] = new_df['destination'].str.strip()
 
-#####
-
 # Cutdown 19:26 12/19/2021
 # When we import the FA query, we want to be sure it has only true European airports. 
 # This means no ICAO identifiers starting with "K" (USA), "C" (CAN), or "M" (MEX), and no flights with solely lat/long listed as O or D.
-bgr = bgr[(bgr['Origin'].str[0] != "K") & (bgr['Origin'].str[0] != "C") & (bgr['Origin'].str[1] != " ") & (bgr['Origin'].str[0] != "M") | (bgr['Destination'].str[0] != "K") & (bgr['Destination'].str[0] != "C") & (bgr['Destination'].str[1] != " ") & (bgr['Destination'].str[0] != "M")]
+bgr = bgr[((bgr['Origin'].str[0] != "K") & (bgr['Origin'].str[0] != "C") & (bgr['Origin'].str[1] != " ") & (bgr['Origin'].str[0] != "M")) | ((bgr['Destination'].str[0] != "K") & (bgr['Destination'].str[0] != "C") & (bgr['Destination'].str[1] != " ") & (bgr['Destination'].str[0] != "M"))]
 
-#####
+# Get rid of any stray medical flights, too.
+# They seem to sneak in if there is no destination but they all fall under the same ident # of 901.
+bgr = bgr[(bgr['Flight'] != "901") | (bgr['Airline'] != "N")]
 
 # The airport codes in the spreadsheet are IATA (3-letter) whereas the pulls from FA are ICAO (4-letter). We will use a table to create a dictionary that maps the ICAO to the IATA.
 # Scraping 15:39 12/19/2021
@@ -174,19 +189,6 @@ bgr['Destination Country'] = bgr['Destination'].map(combined_dict)
 
 bgr = bgr[['Date','Airline','Flight','Type','Origin','Origin Country','Destination','Destination Country']]
 
-# If there are no flights, we exit the program and the Google API does not run.
-if len(bgr) == 0:
-	exit()
-else:
-	pass
-
-###################
-
-gc = gspread.service_account()
-sh = gc.open("SS_name")
-ws = sh.get_worksheet(0)
-df = pd.DataFrame(ws.get_all_records())
-
 # ML model to predict direction column based on Origin Country.
 y_final = df[['Direction']]
 
@@ -200,7 +202,7 @@ X_train, X_test, y_train, y_test = train_test_split(X_final, y_final, test_size=
 
 # The Scikit-learn RF and GB classifiers tend to undersample East flights, so we use the Balanced RF classifier from imbalanced-learn.
 model = BalancedRandomForestClassifier()
-model.fit(X_train, y_train)
+model.fit(X_train, y_train.values.ravel())
 
 # Must transform the origin countries in the new flights to the LE scheme that currently exists
 new_predicts = le.transform(bgr['Origin Country']).astype(str).reshape(-1,1)
@@ -213,6 +215,8 @@ df = df.append(bgr).sort_values(by=['Date']).reset_index(drop=True)
 
 # Setting with dataframe 20:34 12/19/2021
 set_with_dataframe(ws, df)
+
+print(f"{len(bgr)} new flights added. {len(df)} flights total.")
 
 exit()
 
